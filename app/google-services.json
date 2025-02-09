@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1030619675429",
+    "project_id": "med-capsule-147af",
+    "storage_bucket": "med-capsule-147af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1030619675429:android:a431d08be10117f072b8cc",
+        "android_client_info": {
+          "package_name": "com.example.medcapsule"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3hxyH1m_lzWfAFMTpUY4F3_QA1v5ftjg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
