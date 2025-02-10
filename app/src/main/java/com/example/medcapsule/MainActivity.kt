@@ -1,28 +1,41 @@
 package com.example.medcapsule
 
+import android.content.ContentValues.TAG
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.sp
-import com.example.medcapsule.sealed.DataState
-import com.example.medcapsule.viewmodels.MainViewModel
-import com.example.medcapsule.models.User
+import com.google.firebase.FirebaseApp
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.proto.TargetGlobal
+
+data class Note(
+    val id: String = "",
+    val title: String = "",
+    val content: String = ""
+)
+
+val firestore = FirebaseFirestore.getInstance()
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel : MainViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -31,63 +44,89 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxSize()
                 ){
-                SetData(viewModel)
+                Text(text = "All Fine!")
+                Crud()
             }
 
         }
-    }
-
-    @Composable
-    private fun SetData(viewModel: MainViewModel) {
-        when(val result = viewModel.response.value){
-            is DataState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ){
-                    CircularProgressIndicator()
-                }
-            }
-            is DataState.Success -> {
-                ShowLazyList(result.data)
-            }
-            is DataState.Failure -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = result.message,
-                        fontSize = 20.sp,
-                    )
-                }
-            }
-            else -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Error Fetching data",
-                        fontSize = 20.sp,
-                    )
-                }
-            }
-        }
-
     }
 }
 
+
+fun addNoteToFirestore(note: Note) {
+    val notesCollection = firestore.collection("notes")
+    notesCollection.add(note)
+        .addOnSuccessListener {
+            Log.d(TAG,"Successful entry")
+        }
+        .addOnFailureListener { exception ->
+            // Handle failure
+            Log.w(TAG, "Failure to add")
+        }
+}
+
+
 @Composable
-fun ShowLazyList(users: MutableList<User>) {
+fun Crud() {
+
+    var title by remember { mutableStateOf("") }
+    var content by  remember { mutableStateOf("") }
+
+    Column {
+        TextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("Title") }
+        )
+        TextField(
+            value = content,
+            onValueChange = { content = it },
+            label = { Text("Content") }
+        )
+        Button(onClick = {
+            val note = Note(
+                title = title,
+                content = content
+            )
+            addNoteToFirestore(note)
+        }) {
+            Text("Add Note")
+        }
+        FetchNotesFromFirestore()
+    }
+
+
+}
+
+@Composable
+fun FetchNotesFromFirestore() {
+    val notes = remember { mutableStateListOf<Note>() }
+    val notesCollection = firestore.collection("notes")
+
+    LaunchedEffect(Unit) {
+        notesCollection.get()
+            .addOnSuccessListener { result ->
+                for (document in result) {
+                    val note = document.toObject(Note::class.java)
+                    notes.add(note)
+                }
+            }
+            .addOnFailureListener { exception ->
+                // Handle error
+            }
+    }
+
+    NoteList(notes = notes)
+}
+
+@Composable
+fun NoteList(notes: List<Note>) {
     LazyColumn {
-        items(users){user ->
-            DisplayItem(user)
+        items(notes) { note ->
+            Text(text = note.title)
+            Text(text = note.content)
         }
     }
 }
 
-@Composable
-fun DisplayItem(user: User) {
-    user.last?.let { Text(text = it) }
-}
+
