@@ -1,132 +1,120 @@
 package com.example.medcapsule
 
-import android.content.ContentValues.TAG
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.greetingcard.NavBarButton
+import com.example.medcapsule.Screens.CourseScreen
+import com.example.medcapsule.Screens.DiscoverScreen
+import com.example.medcapsule.Screens.InviteScreen
+import com.example.medcapsule.Screens.LibraryScreen
+import com.example.medcapsule.Screens.ProfileScreen
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.proto.TargetGlobal
-
-data class Note(
-    val id: String = "",
-    val title: String = "",
-    val content: String = ""
-)
 
 val firestore = FirebaseFirestore.getInstance()
 
 class MainActivity : ComponentActivity() {
 
+
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Column(horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier
-                    .fillMaxSize()
-                ){
-                Text(text = "All Fine!")
-                Crud()
-            }
+            val navController = rememberNavController()
 
-        }
-    }
-}
-
-
-fun addNoteToFirestore(note: Note) {
-    val notesCollection = firestore.collection("notes")
-    notesCollection.add(note)
-        .addOnSuccessListener {
-            Log.d(TAG,"Successful entry")
-        }
-        .addOnFailureListener { exception ->
-            // Handle failure
-            Log.w(TAG, "Failure to add")
-        }
-}
-
-
-@Composable
-fun Crud() {
-
-    var title by remember { mutableStateOf("") }
-    var content by  remember { mutableStateOf("") }
-
-    Column {
-        TextField(
-            value = title,
-            onValueChange = { title = it },
-            label = { Text("Title") }
-        )
-        TextField(
-            value = content,
-            onValueChange = { content = it },
-            label = { Text("Content") }
-        )
-        Button(onClick = {
-            val note = Note(
-                title = title,
-                content = content
-            )
-            addNoteToFirestore(note)
-        }) {
-            Text("Add Note")
-        }
-        FetchNotesFromFirestore()
-    }
-
-
-}
-
-@Composable
-fun FetchNotesFromFirestore() {
-    val notes = remember { mutableStateListOf<Note>() }
-    val notesCollection = firestore.collection("notes")
-
-    LaunchedEffect(Unit) {
-        notesCollection.get()
-            .addOnSuccessListener { result ->
-                for (document in result) {
-                    val note = document.toObject(Note::class.java)
-                    notes.add(note)
+            Scaffold (
+                topBar = {
+                    TopAppBar(
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            titleContentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                        navigationIcon = {
+                            Image(
+                                painter = painterResource(id = R.drawable.logo),
+                                contentDescription = "Logo_Replacable",
+                                modifier = Modifier
+                                    .size(60.dp)
+                            )
+                        },
+                        actions = {
+                            IconButton(onClick = { /* do something */ }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = "Localized description"
+                                )
+                            }
+                        },
+                        title = {
+                            Text(text = "MedCapsule")
+                        }
+                    )
+                },
+                bottomBar = {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ){
+                        NavBarButton(R.drawable.house,"Discover",navController)
+                        NavBarButton(R.drawable.play,"Course",navController)
+                        NavBarButton(R.drawable.openbook,"Library",navController)
+                        NavBarButton(R.drawable.profile,"Profile",navController)
+                        NavBarButton(R.drawable.invite,"Invite",navController)
+                    }
                 }
-            }
-            .addOnFailureListener { exception ->
-                // Handle error
-            }
-    }
+            ){ innerPadding ->
+                NavHost(
+                    navController = navController,
+                    startDestination = "Discover",
+                    modifier = Modifier.padding(innerPadding)
+                        .fillMaxSize()
+                ) {
+                    composable("Discover") {
+                        DiscoverScreen()
+                    }
+                    composable("Course") {
+                        CourseScreen()
+                    }
+                    composable("Library") {
+                        LibraryScreen()
+                    }
+                    composable("Profile") {
+                        ProfileScreen()
+                    }
+                    composable("Invite") {
+                        InviteScreen()
+                    }
+                }
 
-    NoteList(notes = notes)
-}
+            }
 
-@Composable
-fun NoteList(notes: List<Note>) {
-    LazyColumn {
-        items(notes) { note ->
-            Text(text = note.title)
-            Text(text = note.content)
         }
     }
 }
-
-
