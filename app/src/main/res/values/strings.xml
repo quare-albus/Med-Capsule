@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Med Capsule</string>
+    <string name="title_activity_chapter">Chapter</string>
+    <string name="title_activity_chapters_part">ChaptersPart</string>
 </resources>

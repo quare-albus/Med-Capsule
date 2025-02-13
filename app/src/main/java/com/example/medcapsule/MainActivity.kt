@@ -1,5 +1,6 @@
 package com.example.medcapsule
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,8 +23,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -41,6 +45,7 @@ val firestore = FirebaseFirestore.getInstance()
 
 class MainActivity : ComponentActivity() {
 
+    private lateinit var player: ExoPlayer
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,7 +69,7 @@ class MainActivity : ComponentActivity() {
                             )
                         },
                         actions = {
-                            IconButton(onClick = { /* do something */ }) {
+                            IconButton(onClick = {  /* to do something */    }) {
                                 Icon(
                                     imageVector = Icons.Filled.Search,
                                     contentDescription = "Localized description"

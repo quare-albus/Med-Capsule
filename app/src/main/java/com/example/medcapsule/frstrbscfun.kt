@@ -17,13 +17,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 data class Note(
-    val id: String = "",
-    val title: String = "",
-    val content: String = ""
+    val name: String = ""
 )
 
 fun addNoteToFirestore(note: Note) {
-    val notesCollection = firestore.collection("notes")
+    val notesCollection = firestore.collection("Chapters11").document("Living World").collection("Parts")
     notesCollection.add(note)
         .addOnSuccessListener {
             Log.d(TAG,"Successful entry")
@@ -41,28 +39,28 @@ fun Crud() {
     var title by remember { mutableStateOf("") }
     var content by  remember { mutableStateOf("") }
 
-    Column {
-        TextField(
-            value = title,
-            onValueChange = { title = it },
-            label = { Text("Title") }
-        )
-        TextField(
-            value = content,
-            onValueChange = { content = it },
-            label = { Text("Content") }
-        )
-        Button(onClick = {
-            val note = Note(
-                title = title,
-                content = content
-            )
-            addNoteToFirestore(note)
-        }) {
-            Text("Add Note")
-        }
+//    Column {
+//        TextField(
+//            value = title,
+//            onValueChange = { title = it },
+//            label = { Text("Title") }
+//        )
+//        TextField(
+//            value = content,
+//            onValueChange = { content = it },
+//            label = { Text("Content") }
+//        )
+//        Button(onClick = {
+//            val note = Note(
+//                title = title,
+//                content = content
+//            )
+//            addNoteToFirestore(note)
+//        }) {
+//            Text("Add Note")
+//        }
         FetchNotesFromFirestore()
-    }
+//    }
 
 
 }
@@ -70,7 +68,7 @@ fun Crud() {
 @Composable
 fun FetchNotesFromFirestore() {
     val notes = remember { mutableStateListOf<Note>() }
-    val notesCollection = firestore.collection("notes")
+    val notesCollection = firestore.collection("Chapters11").document("Living World").collection("Parts")
 
     LaunchedEffect(Unit) {
         notesCollection.get()
@@ -92,8 +90,7 @@ fun FetchNotesFromFirestore() {
 fun NoteList(notes: List<Note>) {
     LazyRow{
         items(notes) { note ->
-            Text(text = note.title)
-            Text(text = note.content)
+            Text(text = note.name)
         }
     }
 }

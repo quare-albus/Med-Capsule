@@ -55,6 +55,9 @@ dependencies {
     implementation(libs.androidx.media3.common.ktx)
     implementation(libs.firebase.database.ktx)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -63,6 +66,18 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    // firebase Bom
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.firestore) // firestore
+
+    //Coil Url image loader
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
+    //ExoPlayer functionality
+    implementation (libs.accompanist.systemuicontroller)
+    implementation (libs.androidx.media3.exoplayer)
+
+    // pdf viewer dependecy
+    implementation(libs.pdf.viewer)
 }
