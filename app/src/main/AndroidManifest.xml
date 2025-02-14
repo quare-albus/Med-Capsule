@@ -15,6 +15,11 @@
         android:theme="@style/Theme.MedCapsule"
         tools:targetApi="31">
         <activity
+            android:name=".DiscoverScreenActivities.PartScreen"
+            android:exported="false"
+            android:label="@string/title_activity_part_screen"
+            android:theme="@style/Theme.MedCapsule" />
+        <activity
             android:name=".DiscoverScreenActivities.ChaptersPart"
             android:exported="false"
             android:label="@string/title_activity_chapters_part"

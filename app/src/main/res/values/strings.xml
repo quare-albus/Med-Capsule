@@ -2,4 +2,7 @@
     <string name="app_name">Med Capsule</string>
     <string name="title_activity_chapter">Chapter</string>
     <string name="title_activity_chapters_part">ChaptersPart</string>
+    <string name="title_activity_part_screen">PartScreen</string>
+
+    <string name="Url">"https://firebasestorage.googleapis.com/v0/b/med-capsule-147af.firebasestorage.app/o/Audio%2FTrial.mp3?alt=media&amp;token=eca64e93-7c87-4cae-83cb-c10abf548721"</string>
 </resources>

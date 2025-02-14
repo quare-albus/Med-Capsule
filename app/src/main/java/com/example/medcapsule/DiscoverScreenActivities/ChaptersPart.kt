@@ -1,12 +1,14 @@
 package com.example.medcapsule.DiscoverScreenActivities
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,6 +74,7 @@ class ChaptersPart : ComponentActivity() {
                     )
                 }
             ) { innerPadding ->
+
                 Column (modifier = Modifier.padding(innerPadding)
                     .fillMaxSize()){
                     Box(
@@ -98,6 +102,7 @@ class ChaptersPart : ComponentActivity() {
 
 @Composable
 private fun displayParts(partsList: List<Part>) {
+    val context = LocalContext.current
     LazyColumn {
         items(partsList){Part ->
             Card(
@@ -107,7 +112,14 @@ private fun displayParts(partsList: List<Part>) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp)
-                    .padding(12.dp),
+                    .padding(12.dp)
+                    .clickable(
+                        onClick = {
+                            val intent = Intent(context,PartScreen::class.java)
+                            intent.putExtra("PartName",Part.name)
+                            context.startActivity(intent)
+                        }
+                    ),
                 colors = CardDefaults.cardColors(
                     containerColor = Color.White, //Card background color
                     contentColor = Color.Black  //Card content color,e.g.text
