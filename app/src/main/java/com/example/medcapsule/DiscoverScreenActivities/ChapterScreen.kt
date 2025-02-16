@@ -75,6 +75,9 @@ class ChapterScreen : ComponentActivity() {
             ) { innerPadding ->
                 // for starting activities
                 val context = LocalContext.current
+                val chapname = intent.getStringExtra("ChapterName").toString()
+                val Nhylyts = intent.getStringExtra("Nhylyts").toString()
+                val Notes = intent.getStringExtra("Notes").toString()
 
                 Column(
                     modifier = Modifier.padding(innerPadding)
@@ -106,7 +109,6 @@ class ChapterScreen : ComponentActivity() {
                             .background(Color.White)
                             .clickable(
                                 onClick = {
-                                    val chapname = intent.getStringExtra("ChapterName").toString()
                                     val intentCrnt = Intent(context, ChaptersPart::class.java)
                                     intentCrnt.putExtra("ChapterName",chapname)
                                     context.startActivity(intentCrnt)
@@ -139,8 +141,17 @@ class ChapterScreen : ComponentActivity() {
                                 Icons.Filled.Star,
                                 contentDescription = "Localized description",
                                 modifier = Modifier
-                                    .size(20.dp))
-                            Text("Parts")
+                                    .size(20.dp)
+                                    .clickable(
+                                        onClick = {
+                                            val intentCrnt = Intent(context, PdfViewer::class.java)
+                                            intentCrnt.putExtra("ChapterName",chapname)
+                                            intentCrnt.putExtra("Url",Nhylyts)
+                                            context.startActivity(intentCrnt)
+                                        }
+                                    ))
+                            Text(Nhylyts)
+                            Text("NCERT Highlights")
                         }
 
                         Column (
@@ -158,8 +169,17 @@ class ChapterScreen : ComponentActivity() {
                                 contentDescription = "Localized description",
                                 contentScale = ContentScale.FillBounds,
                                 modifier = Modifier
-                                    .size(20.dp))
-                            Text("Parts")
+                                    .size(20.dp)
+                                    .clickable(
+                                        onClick = {
+                                            val intentCrnt = Intent(context, PdfViewer::class.java)
+                                            intentCrnt.putExtra("ChapterName",chapname)
+                                            intentCrnt.putExtra("Url",Notes)
+                                            context.startActivity(intentCrnt)
+                                        })
+                            )
+                            Text(Notes)
+                            Text("Notes")
                         }
                     }
 

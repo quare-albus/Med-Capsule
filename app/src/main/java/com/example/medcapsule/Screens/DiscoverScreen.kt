@@ -61,7 +61,7 @@ fun DiscoverScreen()
             fontWeight = FontWeight.Bold
         )
 
-        fetchChaptersOf("Chapters11")
+        fetchChaptersOf(11)
 
         Text(text="12th Bio",
             modifier = Modifier.padding(8.dp),
@@ -69,7 +69,7 @@ fun DiscoverScreen()
             fontWeight = FontWeight.Bold
         )
 
-        fetchChaptersOf("Chapters12")
+        fetchChaptersOf(12)
     }
 }
 

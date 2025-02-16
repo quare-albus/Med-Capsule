@@ -32,9 +32,9 @@ import com.example.medcapsule.firestore
 
 
 @Composable
-fun fetchChaptersOf(collectionName: String) {
+fun fetchChaptersOf(grade: Int) {
     val chapters = remember { mutableStateListOf<Chapter>() }
-    val chapterCollection = firestore.collection(collectionName)
+    val chapterCollection = firestore.collection("Chapters").whereEqualTo("Grade", grade)
 
     LaunchedEffect(Unit) {
         chapterCollection.get()
@@ -75,6 +75,8 @@ fun displayItem(chapters : List<Chapter>){
 //                    b.putString("ChapterName",chapter.name)
                     intent.putExtra("ChapterName",chapter.name)
                     intent.putExtra("ChapterimageUrl",chapter.imageUrl)
+                    intent.putExtra("Nhylyts",chapter.Nhylyts)
+                    intent.putExtra("Notes",chapter.Notes)
                     context.startActivity(intent)
                 }
             ){
@@ -99,7 +101,7 @@ fun displayItem(chapters : List<Chapter>){
                             fontSize = 15.sp
                         )
                         Text(
-                            text = "Chapter ${chapter.number}",
+                            text = "Chapter ${chapter.ChapterNumber}",
                             modifier = Modifier
                                 .offset(x = 8.dp),
                             fontWeight = FontWeight.Thin

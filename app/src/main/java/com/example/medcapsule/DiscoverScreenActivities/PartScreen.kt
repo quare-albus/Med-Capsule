@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -34,9 +35,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -71,7 +75,10 @@ class PartScreen : ComponentActivity() {
 
         setContent {
             val navController = rememberNavController()
-            val isPlaying = remember {
+            var isPlaying by remember {
+                mutableStateOf(true)
+            }
+            var test by remember {
                 mutableStateOf(false)
             }
             Scaffold(
@@ -104,6 +111,14 @@ class PartScreen : ComponentActivity() {
                         }
                         player.prepare()
 
+                        player.addListener(
+                            object : Player.Listener {
+                                override fun onIsPlayingChanged(isPlayingValue: Boolean) {
+                                    test = isPlayingValue
+                                }
+                            }
+                        )
+
                         val currentPosition = remember {
                             mutableLongStateOf(0)
                         }
@@ -116,7 +131,7 @@ class PartScreen : ComponentActivity() {
                             mutableLongStateOf(0)
                         }
 
-                        LaunchedEffect(key1 = player.currentPosition, key2 = player.isPlaying) {
+                        LaunchedEffect(key1 = player.currentPosition, key2 = player.isPlaying, key3 = isPlaying) {
                             delay(100)
                             currentPosition.longValue = player.currentPosition
                             sliderPosition.longValue = currentPosition.longValue
@@ -182,15 +197,15 @@ class PartScreen : ComponentActivity() {
                             ) {
                                 Spacer(modifier = Modifier.width(20.dp))
                                 ControlButton(
-                                    icon = if (isPlaying.value) R.drawable.play else R.drawable.play,
+                                    icon = if (isPlaying) R.drawable.play else R.drawable.house,
                                     size = 50.dp,
                                     onClick = {
-                                        if (isPlaying.value) {
+                                        if (isPlaying) {
                                             player.pause()
                                         } else {
                                             player.play()
                                         }
-                                        isPlaying.value = player.isPlaying
+                                        isPlaying = player.isPlaying
                                     })
                             }
                         }
