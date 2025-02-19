@@ -6,4 +6,5 @@
 
     <string name="Url">"https://firebasestorage.googleapis.com/v0/b/med-capsule-147af.firebasestorage.app/o/Audio%2FTrial.mp3?alt=media&amp;token=eca64e93-7c87-4cae-83cb-c10abf548721"</string>
     <string name="title_activity_pdf_viewer">PdfViewer</string>
+    <string name="title_activity_quiz_screen">QuizScreen</string>
 </resources>

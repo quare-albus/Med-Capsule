@@ -23,10 +23,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,10 +60,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.AsyncImage
 import com.example.medcapsule.R
+import com.google.firebase.Firebase
+import com.google.firebase.storage.storage
 import com.rajat.pdfviewer.compose.PdfRendererViewCompose
 import kotlinx.coroutines.delay
 
 class PartScreen : ComponentActivity() {
+
+    var extplayer :ExoPlayer? = null
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,6 +75,7 @@ class PartScreen : ComponentActivity() {
         enableEdgeToEdge()
 
         val player = ExoPlayer.Builder(this).build()
+        extplayer = player
         val PartName = intent.getStringExtra("PartName")?: ""
 
         setContent {
@@ -102,113 +107,159 @@ class PartScreen : ComponentActivity() {
                     )
                 },
                 bottomBar = {
-                    Box( modifier = Modifier.fillMaxWidth()) {
+                    var url by remember { mutableStateOf("") }
+//                    var isReady by remember { mutableStateOf(false) }
 
-                        LaunchedEffect(Unit) {
-                            val uri = Uri.parse(getString(R.string.Url))
+                    var storage = Firebase.storage
+                    var docRef = intent.getStringExtra("Audio")?.let { storage.reference.child(it) }
+
+                    if (docRef != null) {
+                        docRef.downloadUrl.addOnSuccessListener { uri ->
+                            url = uri.toString()
+                        }
+                    }
+                    if (url!="") {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+
+                            var test by remember { mutableStateOf(false) }
+                            var isBuffering by remember { mutableStateOf(false) }
+                            var isReady by remember { mutableStateOf(false) } // already defined above
+
+                            val uri = Uri.parse(url)
                             val mediaItem = MediaItem.fromUri(uri)
                             player.addMediaItem(mediaItem)
-                        }
-                        player.prepare()
+                            player.prepare()
+                            player.addListener(
+                                object : Player.Listener {
+                                    override fun onIsPlayingChanged(isPlayingValue: Boolean) {
+                                        test = isPlayingValue
+                                    }
 
-                        player.addListener(
-                            object : Player.Listener {
-                                override fun onIsPlayingChanged(isPlayingValue: Boolean) {
-                                    test = isPlayingValue
+                                    override fun onPlaybackStateChanged(playbackState: Int) {
+                                        super.onPlaybackStateChanged(playbackState)
+
+                                        isBuffering = if (playbackState == Player.STATE_BUFFERING) {
+                                            true
+                                        } else {
+                                            false
+                                        }
+
+                                        if (playbackState == Player.STATE_READY) {
+                                            isReady = true
+                                        } else {
+                                            isReady = false
+                                        }
+                                    }
+                                }
+                            )
+
+                            val currentPosition = remember {
+                                mutableLongStateOf(0)
+                            }
+
+                            val sliderPosition = remember {
+                                mutableLongStateOf(0)
+                            }
+
+                            val totalDuration = remember {
+                                mutableLongStateOf(0)
+                            }
+
+
+                            LaunchedEffect(
+                                key1 = player.currentPosition,
+                                key2 = player.isPlaying,
+                                key3 = isReady
+                            ) {
+                                delay(100)
+                                while ((player.currentPosition - sliderPosition.longValue) == 0L && player.isPlaying) {
+                                    sliderPosition.longValue += 100L
+                                    delay(100)
+                                }
+                                currentPosition.longValue = player.currentPosition
+                                sliderPosition.longValue = currentPosition.longValue
+                            }
+
+                            LaunchedEffect(currentPosition.longValue) {
+                                sliderPosition.longValue = currentPosition.longValue
+                            }
+
+                            LaunchedEffect(player.duration) {
+                                if (player.duration > 0) {
+                                    totalDuration.longValue = player.duration
                                 }
                             }
-                        )
 
-                        val currentPosition = remember {
-                            mutableLongStateOf(0)
-                        }
-
-                        val sliderPosition = remember {
-                            mutableLongStateOf(0)
-                        }
-
-                        val totalDuration = remember {
-                            mutableLongStateOf(0)
-                        }
-
-                        LaunchedEffect(key1 = player.currentPosition, key2 = player.isPlaying, key3 = isPlaying) {
-                            delay(100)
-                            currentPosition.longValue = player.currentPosition
-                            sliderPosition.longValue = currentPosition.longValue
-                        }
-
-                        LaunchedEffect(currentPosition.longValue) {
-                            sliderPosition.longValue = currentPosition.longValue
-                        }
-
-                        LaunchedEffect(player.duration) {
-                            if (player.duration > 0) {
-                                totalDuration.longValue = player.duration
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp),
-                            verticalArrangement = Arrangement.SpaceEvenly,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-
-                            TrackSlider(
-                                value = sliderPosition.longValue.toFloat(),
-                                onValueChange = {
-                                    sliderPosition.longValue = it.toLong()
-                                },
-                                onValueChangeFinished = {
-                                    currentPosition.longValue = sliderPosition.longValue
-                                    player.seekTo(sliderPosition.longValue)
-                                },
-                                songDuration = totalDuration.longValue.toFloat()
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth()
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 32.dp),
+                                verticalArrangement = Arrangement.SpaceEvenly,
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
+                                // the below text is neccessary for the proper run of the slide and things Reason: Unkown
+                                val rubbish = test.toString() + "Ready: $isReady" + "Slide Position: ${sliderPosition.longValue} " + isBuffering.toString() + player.currentPosition.toString() + totalDuration.longValue.toString() + url
 
-                                Text(
-                                    text = (currentPosition.longValue).convertToText(),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(8.dp),
-                                    color = Color.Black,
-                                    style = TextStyle(fontWeight = FontWeight.Bold)
+                                TrackSlider(
+                                    value = sliderPosition.longValue.toFloat(),
+                                    onValueChange = {
+                                        sliderPosition.longValue = it.toLong()
+                                    },
+                                    onValueChangeFinished = {
+                                        currentPosition.longValue = sliderPosition.longValue
+                                        player.seekTo(sliderPosition.longValue)
+                                    },
+                                    songDuration = totalDuration.longValue.toFloat()
                                 )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
 
-                                val remainTime =
-                                    totalDuration.longValue - currentPosition.longValue
-                                Text(
-                                    text = if (remainTime >= 0) remainTime.convertToText() else "",
-                                    modifier = Modifier
-                                        .padding(8.dp),
-                                    color = Color.Black,
-                                    style = TextStyle(fontWeight = FontWeight.Bold)
-                                )
-                            }
+                                    Text(
+                                        text = (currentPosition.longValue).convertToText(),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(8.dp),
+                                        color = Color.Black,
+                                        style = TextStyle(fontWeight = FontWeight.Bold)
+                                    )
 
-                            Spacer(modifier = Modifier.height(5.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Spacer(modifier = Modifier.width(20.dp))
-                                ControlButton(
-                                    icon = if (isPlaying) R.drawable.play else R.drawable.house,
-                                    size = 50.dp,
-                                    onClick = {
-                                        if (isPlaying) {
-                                            player.pause()
-                                        } else {
-                                            player.play()
-                                        }
-                                        isPlaying = player.isPlaying
-                                    })
+                                    val remainTime =
+                                        totalDuration.longValue - currentPosition.longValue
+                                    Text(
+                                        text = if (remainTime >= 0) remainTime.convertToText() else "",
+                                        modifier = Modifier
+                                            .padding(8.dp),
+                                        color = Color.Black,
+                                        style = TextStyle(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(5.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Spacer(modifier = Modifier.width(20.dp))
+                                    ControlButton(
+                                        icon = if (player.isPlaying) R.drawable.play else R.drawable.ic_launcher_foreground,
+                                        size = 50.dp,
+                                        onClick = {
+                                            if (!isBuffering) {
+                                                if (player.isPlaying) {
+                                                    player.pause()
+                                                } else {
+                                                    player.play()
+                                                }
+                                            }
+                                        })
+                                }
                             }
                         }
+                    }
+                    else
+                    {
+                        CircularProgressIndicator()
                     }
                 }
             ) { innerPadding ->
@@ -221,15 +272,21 @@ class PartScreen : ComponentActivity() {
                     composable("mainPage"){
                         mainScreen(navController)
                     }
-                    composable("pdfPage"){
-                        PdfRendererViewCompose(
-                            url = "https://openaccess.thecvf.com/content/CVPR2024/papers/Yang_Depth_Anything_Unleashing_the_Power_of_Large-Scale_Unlabeled_Data_CVPR_2024_paper.pdf",
-                            modifier = Modifier.fillMaxSize()
-                        )
+                    composable("NotesPage"){
+                        intent.getStringExtra("Notes")?.let { it1 -> PdfViewerCompose(it1) }
+                    }
+                    composable("NhylytsPage"){
+                        intent.getStringExtra("Nhylyts")?.let { it1 -> PdfViewerCompose(it1) }
                     }
                 }
             }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        extplayer?.pause()
+        extplayer?.release()
     }
 
 
@@ -297,20 +354,37 @@ class PartScreen : ComponentActivity() {
             modifier = Modifier
                 .fillMaxSize()
         ) {
+
+            var storage = Firebase.storage
+            var imageRef = intent.getStringExtra("PartimageUrl")
+                ?.let { storage.reference.child(it) }
+
+            var imageUrl by remember{mutableStateOf("")}
+
+            imageRef?.downloadUrl?.addOnSuccessListener { uri ->
+                imageUrl = uri.toString()
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(400.dp)
                     .padding(16.dp)
                     .clip(RoundedCornerShape(15.dp))
-                    .background(Color.Red)
+                    .background(Color.Red),
+                contentAlignment = Alignment.Center
             ) {
+                if(imageUrl!=""){
                         AsyncImage(
-                            model = "https://cdn.corporatefinanceinstitute.com/assets/temporary-account.jpeg",
+                            model = imageUrl,
                             contentDescription = "image",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
+                }
+                else{
+                    CircularProgressIndicator()
+                }
             }
 
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -325,7 +399,7 @@ class PartScreen : ComponentActivity() {
                         .padding(12.dp)
                         .clickable(
                             onClick = {
-                                navController.navigate("pdfPage")
+                                navController.navigate("NhylytsPage")
                             }
                         ),
                     colors = CardDefaults.cardColors(
@@ -352,7 +426,7 @@ class PartScreen : ComponentActivity() {
                         .padding(12.dp)
                         .clickable(
                             onClick = {
-                               navController.navigate("pdfPage")
+                               navController.navigate("NotesPage")
                             }
                         ),
                     colors = CardDefaults.cardColors(
@@ -368,6 +442,31 @@ class PartScreen : ComponentActivity() {
                         Text("Notes")
                     }
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun PdfViewerCompose(docUrl: String){
+        var url by remember { mutableStateOf("") }
+
+        var storage = Firebase.storage
+        var docRef = docUrl.let { storage.reference.child(it) }
+
+        if (docRef != null) {
+            docRef.downloadUrl.addOnSuccessListener { uri ->
+                url = uri.toString()
+            }
+        }
+        Box(modifier = Modifier
+            .fillMaxSize()){
+            if(url!="") {
+                PdfRendererViewCompose(
+                    url = url
+                )
+            }
+            else{
+                CircularProgressIndicator()
             }
         }
     }

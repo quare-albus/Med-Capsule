@@ -86,7 +86,7 @@ class ChaptersPart : ComponentActivity() {
                             .background(Color.Red)
                     ) {
                         AsyncImage(
-                            model = "https://cdn.corporatefinanceinstitute.com/assets/temporary-account.jpeg",
+                            model = intent.getStringExtra("ChapterimageUrl"),
                             contentDescription = "image",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
@@ -117,6 +117,10 @@ private fun displayParts(partsList: List<Part>) {
                         onClick = {
                             val intent = Intent(context,PartScreen::class.java)
                             intent.putExtra("PartName",Part.name)
+                            intent.putExtra("PartimageUrl",Part.imageUrl)
+                            intent.putExtra("Notes",Part.Notes)
+                            intent.putExtra("Nhylyts",Part.Nhylyts)
+                            intent.putExtra("Audio",Part.Audio)
                             context.startActivity(intent)
                         }
                     ),

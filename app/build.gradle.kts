@@ -68,7 +68,9 @@ dependencies {
 
     // firebase Bom
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.firestore) // firestore
+    implementation(libs.firebase.firestore) //firestore
+    //CloudStorage of firebase
+    implementation(libs.firebase.storage)
 
     //Coil Url image loader
     implementation(libs.coil.compose)

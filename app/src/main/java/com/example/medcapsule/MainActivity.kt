@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.greetingcard.NavBarButton
+import com.example.medcapsule.Quiz.QuizViewModel
 import com.example.medcapsule.Screens.CourseScreen
 import com.example.medcapsule.Screens.DiscoverScreen
 import com.example.medcapsule.Screens.InviteScreen
@@ -46,6 +48,7 @@ val firestore = FirebaseFirestore.getInstance()
 class MainActivity : ComponentActivity() {
 
     private lateinit var player: ExoPlayer
+    val quizViewModel : QuizViewModel by viewModels()
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,7 +108,7 @@ class MainActivity : ComponentActivity() {
                         DiscoverScreen()
                     }
                     composable("Course") {
-                        CourseScreen()
+                        CourseScreen(this@MainActivity)
                     }
                     composable("Library") {
                         LibraryScreen()

@@ -13,7 +13,7 @@ import com.example.medcapsule.firestore
 fun fetchParts(chapterName : String) : List<Part>{
 
     val parts = remember { mutableStateListOf<Part>() }
-    val partCollection = firestore.collection("Chapters11").document(chapterName).collection("Parts")
+    val partCollection = firestore.collection("Chapters").document(chapterName).collection("Parts")
 
     LaunchedEffect(Unit){
         partCollection.get()

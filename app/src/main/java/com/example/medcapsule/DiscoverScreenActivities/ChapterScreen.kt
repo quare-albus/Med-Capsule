@@ -111,6 +111,7 @@ class ChapterScreen : ComponentActivity() {
                                 onClick = {
                                     val intentCrnt = Intent(context, ChaptersPart::class.java)
                                     intentCrnt.putExtra("ChapterName",chapname)
+                                    intentCrnt.putExtra("ChapterimageUrl",intent.getStringExtra("ChapterimageUrl"))
                                     context.startActivity(intentCrnt)
                                 }
                             ),
@@ -133,7 +134,15 @@ class ChapterScreen : ComponentActivity() {
                                 .height(100.dp)
                                 .padding(16.dp,4.dp,16.dp,4.dp)
                                 .clip(RoundedCornerShape(15.dp))
-                                .background(Color.White),
+                                .background(Color.White)
+                                .clickable(
+                                    onClick = {
+                                        val intentCrnt = Intent(context, PdfViewer::class.java)
+                                        intentCrnt.putExtra("ChapterName",chapname)
+                                        intentCrnt.putExtra("Url",Nhylyts)
+                                        context.startActivity(intentCrnt)
+                                    }
+                                ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -141,15 +150,7 @@ class ChapterScreen : ComponentActivity() {
                                 Icons.Filled.Star,
                                 contentDescription = "Localized description",
                                 modifier = Modifier
-                                    .size(20.dp)
-                                    .clickable(
-                                        onClick = {
-                                            val intentCrnt = Intent(context, PdfViewer::class.java)
-                                            intentCrnt.putExtra("ChapterName",chapname)
-                                            intentCrnt.putExtra("Url",Nhylyts)
-                                            context.startActivity(intentCrnt)
-                                        }
-                                    ))
+                                    .size(20.dp))
                             Text(Nhylyts)
                             Text("NCERT Highlights")
                         }
@@ -160,7 +161,14 @@ class ChapterScreen : ComponentActivity() {
                                 .height(100.dp)
                                 .padding(16.dp,4.dp,16.dp,4.dp)
                                 .clip(RoundedCornerShape(15.dp))
-                                .background(Color.White),
+                                .background(Color.White)
+                                .clickable(
+                                    onClick = {
+                                        val intentCrnt = Intent(context, PdfViewer::class.java)
+                                        intentCrnt.putExtra("ChapterName",chapname)
+                                        intentCrnt.putExtra("Url",Notes)
+                                        context.startActivity(intentCrnt)
+                                    }),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -170,13 +178,6 @@ class ChapterScreen : ComponentActivity() {
                                 contentScale = ContentScale.FillBounds,
                                 modifier = Modifier
                                     .size(20.dp)
-                                    .clickable(
-                                        onClick = {
-                                            val intentCrnt = Intent(context, PdfViewer::class.java)
-                                            intentCrnt.putExtra("ChapterName",chapname)
-                                            intentCrnt.putExtra("Url",Notes)
-                                            context.startActivity(intentCrnt)
-                                        })
                             )
                             Text(Notes)
                             Text("Notes")

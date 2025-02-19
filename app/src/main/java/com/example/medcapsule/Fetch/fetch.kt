@@ -1,6 +1,8 @@
 package com.example.medcapsule.Fetch
 
 import android.content.Intent
+import android.graphics.Paint.Align
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,11 +14,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -28,7 +35,8 @@ import coil3.compose.AsyncImage
 import com.example.medcapsule.DiscoverScreenActivities.ChapterScreen
 import com.example.medcapsule.Models.Chapter
 import com.example.medcapsule.firestore
-
+import com.google.firebase.Firebase
+import com.google.firebase.storage.storage
 
 
 @Composable
@@ -54,9 +62,12 @@ fun fetchChaptersOf(grade: Int) {
 
 @Composable
 fun displayItem(chapters : List<Chapter>){
+
+
     val context = LocalContext.current
     LazyRow{
         items(chapters) { chapter ->
+            var url by remember{mutableStateOf("")}
             Card(
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 6.dp
@@ -74,23 +85,42 @@ fun displayItem(chapters : List<Chapter>){
 //                    val b = Bundle()
 //                    b.putString("ChapterName",chapter.name)
                     intent.putExtra("ChapterName",chapter.name)
-                    intent.putExtra("ChapterimageUrl",chapter.imageUrl)
+                    intent.putExtra("ChapterimageUrl",url)
                     intent.putExtra("Nhylyts",chapter.Nhylyts)
                     intent.putExtra("Notes",chapter.Notes)
                     context.startActivity(intent)
                 }
             ){
+
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ){
-                    AsyncImage(
-                        model = chapter.imageUrl,
-                        contentDescription = "Image",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
+
+                    var storage = Firebase.storage
+                    var imageRef = storage.reference.child(chapter.imageUrl)
+
+                    imageRef.downloadUrl.addOnSuccessListener { uri ->
+                        url = uri.toString()
+                    }
+
+                    if (url == ""){
+                        Box(modifier = Modifier
                             .fillMaxWidth()
-                            .weight(3f)
-                    )
+                            .weight(3f),
+                            contentAlignment = Alignment.Center){
+                            CircularProgressIndicator()
+                        }
+                    }
+                    else {
+                        AsyncImage(
+                            model = url,
+                            contentDescription = "Image",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(3f)
+                        )
+                    }
                     Column(modifier = Modifier.weight(2f))
                     {
                         Text(
