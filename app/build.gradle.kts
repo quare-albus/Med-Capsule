@@ -82,4 +82,7 @@ dependencies {
 
     // pdf viewer dependecy
     implementation(libs.pdf.viewer)
+
+    //Gson
+    implementation(libs.gson)
 }

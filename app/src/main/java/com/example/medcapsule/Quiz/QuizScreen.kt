@@ -1,20 +1,16 @@
 package com.example.medcapsule.Quiz
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,11 +31,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.medcapsule.Quiz.Pages.Page
+import com.example.medcapsule.Quiz.Pages.AnalysisPage
+import com.example.medcapsule.Quiz.Pages.QuestionPage
+import com.example.medcapsule.Quiz.Pages.ReviewPage
+import com.google.common.reflect.TypeToken
+import com.google.gson.Gson
+import kotlinx.coroutines.flow.update
+import org.json.JSONObject
+import kotlin.collections.Map as Map
 
 class QuizScreen : ComponentActivity() {
     val quizViewModel : QuizViewModel by viewModels()
@@ -50,13 +51,22 @@ class QuizScreen : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+
+
             val navController = rememberNavController()
 
             quizViewModel.fetchQuizSet()
             val quizSet by quizViewModel.quizSet.collectAsState()
             val currentQ by quizViewModel.currentQ.collectAsState()
             val attemptKey by quizViewModel.attemptKey.collectAsState()
-            var totalQ = quizSet.questionSet.size
+
+            val sharedPref = getPreferences(Context.MODE_PRIVATE)
+            val data = sharedPref.getString("Quiz_${quizSet.id}", "")
+            if (data != null) {
+                quizViewModel.setDebug(data)
+            }
+
+            val totalQ = quizSet.questionSet.size
             var isStarted by remember { mutableFloatStateOf(0f) }
             var optionSelected by remember { mutableStateOf(0) }
 
@@ -79,62 +89,11 @@ class QuizScreen : ComponentActivity() {
                                     contentDescription = "Localized description"
                                 )
                             }
+                        },
+                        actions = {
+                            Text(quizViewModel.timer.collectAsState().value.toString())
                         }
                     )
-                },
-                bottomBar = {
-                    Column(modifier = Modifier
-                        .fillMaxWidth()
-                        .alpha(isStarted)) {
-                            Text("${attemptKey[currentQ]} : $currentQ")
-                            Row {
-                                Button(
-                                    onClick = {
-                                         quizViewModel.prevQ()
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(50.dp)
-                                        .padding(4.dp)
-                                        .alpha(
-                                            if (currentQ == 0) {
-                                                0f
-                                            } else {
-                                                1f
-                                            }
-                                        )
-                                ) {
-                                    Text("Previous")
-                                }
-                                Button(
-                                    onClick = {
-                                        quizViewModel.nextQ()
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(50.dp)
-                                        .padding(4.dp)
-                                        .alpha(
-                                            if (currentQ + 1 == totalQ) {
-                                                0f
-                                            } else {
-                                                1f
-                                            }
-                                        )
-                                ) {
-                                    Text("Next")
-                                }
-                            }
-                            Button(
-                                onClick = {       },
-                                modifier = Modifier
-                                    .height(50.dp)
-                                    .fillMaxWidth()
-                                    .padding(4.dp)
-                            ) {
-                                Text("Submit")
-                            }
-                        }
                 }
             ){innerPadding ->
                 NavHost(
@@ -145,6 +104,7 @@ class QuizScreen : ComponentActivity() {
                         .padding(innerPadding)
                 ) {
                     composable("FirstPage") {
+                        isStarted = 0f
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.Center,
@@ -155,7 +115,15 @@ class QuizScreen : ComponentActivity() {
                             Button(
                                 onClick = {
                                     navController.navigate("QuestionPage")
-                                    isStarted = 1f
+                                    quizViewModel.eraseAttempt()
+                                    quizViewModel.startTimer(5){
+                                        val sharedPref = getPreferences(Context.MODE_PRIVATE)
+                                        with (sharedPref.edit()) {
+                                            putString("Quiz_${quizSet.id}", attemptKey.toString())
+                                            apply()
+                                        }
+
+                                        navController.navigate("FirstPage")}
                                 },
                                 modifier = Modifier
                                     .alpha(
@@ -164,22 +132,46 @@ class QuizScreen : ComponentActivity() {
                                         } else 0f
                                     )
                             ) {
-                                Text("Click Me")
+                                Text("Start Test")
                             }
 
                             Text("total number of Q: $totalQ")
+
+                            Text(quizViewModel.debug1.collectAsState().value + attemptKey.toString() )
+
                         }
                     }
 
                     composable("QuestionPage") {
-                        Page(
+                        isStarted = 1f
+                        QuestionPage(
                             quizSet.questionSet[currentQ],
-                            attemptKey[currentQ]
-                        ) { selectedOption ->
+                            totalQ,
+                            attemptKey[currentQ],
+                            onNext = {quizViewModel.nextQ()},
+                            onPrev = {quizViewModel.prevQ()},
+                            onSubmit = {
+                                val sharedPref = getPreferences(Context.MODE_PRIVATE)
+                                with (sharedPref.edit()) {
+                                    putString("Quiz_${quizSet.id}", attemptKey.toString())
+                                    apply()
+                                }
+
+                                navController.navigate("FirstPage")
+                            },
+                         onOptionSelect = { selectedOption ->
                             quizViewModel.selectOption(currentQ, selectedOption)
-                        }
+                        })
                     }
 
+                    composable("AnalysisPage"){
+                        quizViewModel.fetchAnswerKey()
+                        AnalysisPage(attemptKey,quizSet.answerSet,{navController.navigate("ReviewPage")})
+                    }
+                    composable("ReviewPage") {
+                        ReviewPage(quizSet.questionSet[currentQ],totalQ,quizSet.answerSet[currentQ],attemptKey[currentQ]!!, onNext = {quizViewModel.nextQ()},
+                            onPrev = {quizViewModel.prevQ()})
+                    }
                 }
 
             }
