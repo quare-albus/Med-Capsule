@@ -23,6 +23,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class QuizViewModel() : ViewModel() {
+    val State : STATE
+        get() {
+            return STATE
+        }
     private val _quizSet = MutableStateFlow(QuizSet())
     val quizSet : StateFlow<QuizSet> = _quizSet.asStateFlow()
 
@@ -80,19 +84,25 @@ class QuizViewModel() : ViewModel() {
     fun fetchAnswerKey(){
 
         //Fetching Answer Key
-        val answerList = mutableListOf<Answer>()
-        quizSetRef.collection("QuizAnswers").get()
-            .addOnSuccessListener { result ->
-                for (document in result){                                   // questions
-                    val data = document.data
-                    val myObject = document.toObject(Answer::class.java)
-                    answerList.add(myObject)
+        try {
+            val answerList = mutableListOf<Answer>()
+            quizSetRef.collection("QuizAnswers").get()
+                .addOnSuccessListener { result ->
+                    for (document in result) {                                   // questions
+                        val myObject = Answer(document["QuestionNumber"].toString().toInt(),document["Answer"].toString().toInt(),document["Description"].toString())
+                        answerList.add(myObject)
+                    }
+                    val resultObject = _quizSet.value
+                    resultObject.answerSet = answerList.sortedWith(compareBy<Answer> {
+                        it.QuestionNumber
+                    })
+                    _quizSet.update{resultObject}
+                    _debug1.value  = "success"
                 }
-
-                _quizSet.value.answerSet = answerList.sortedWith(compareBy<Answer>{
-                    it.QuestionNumber
-                })
-            }
+        }
+        catch(e : Exception){
+            _debug1.value = e.toString()
+        }
 
         _currentQ.update {0}
 
@@ -158,4 +168,27 @@ class QuizViewModel() : ViewModel() {
         _attemptKey.value = emptyMap()
     }
 
+    fun noCorrect():Int{
+        val correctAnswers = mutableStateOf(0)
+        if(quizSet.value.answerSet.isNotEmpty()) {
+            for (answer in quizSet.value.answerSet) {
+
+                if (answer.Answer == attemptKey.value[answer.QuestionNumber - 1]) {
+                    correctAnswers.value += 1
+                }
+                else{
+                    _debug1.update{old -> old + "${answer.QuestionNumber}  ${answer.Answer} ${attemptKey.value[answer.QuestionNumber]} "}
+                }
+            }
+            return correctAnswers.value
+        }
+        else{
+            return 3
+        }
+    }
+}
+
+enum class STATE{
+    LOADING_QUIZ,
+    READY
 }

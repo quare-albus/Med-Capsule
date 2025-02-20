@@ -37,11 +37,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.medcapsule.Quiz.Pages.AnalysisPage
 import com.example.medcapsule.Quiz.Pages.QuestionPage
 import com.example.medcapsule.Quiz.Pages.ReviewPage
-import com.google.common.reflect.TypeToken
-import com.google.gson.Gson
-import kotlinx.coroutines.flow.update
-import org.json.JSONObject
-import kotlin.collections.Map as Map
 
 class QuizScreen : ComponentActivity() {
     val quizViewModel : QuizViewModel by viewModels()
@@ -137,7 +132,17 @@ class QuizScreen : ComponentActivity() {
 
                             Text("total number of Q: $totalQ")
 
-                            Text(quizViewModel.debug1.collectAsState().value + attemptKey.toString() )
+                            if(attemptKey != null){
+                                Button(onClick = {
+                                    quizViewModel.fetchAnswerKey()
+                                    navController.navigate("AnalysisPage")
+                                }){
+                                    Text("Analysis")
+                                }
+                            }
+                            val debug1 = quizViewModel.debug1.collectAsState().value
+//                           Text(quizViewModel.debug1.collectAsState().value)
+                            Text(quizSet.answerSet.size.toString())
 
                         }
                     }
@@ -165,8 +170,10 @@ class QuizScreen : ComponentActivity() {
                     }
 
                     composable("AnalysisPage"){
-                        quizViewModel.fetchAnswerKey()
-                        AnalysisPage(attemptKey,quizSet.answerSet,{navController.navigate("ReviewPage")})
+                        if (quizSet.answerSet.isNotEmpty()){
+                            AnalysisPage(attemptKey,quizSet.answerSet,quizViewModel.noCorrect()) {navController.navigate("ReviewPage") }
+                        }
+//                        AnalysisPage(attemptKey,quizSet.answerSet,{/*navController.navigate("ReviewPage")*/})
                     }
                     composable("ReviewPage") {
                         ReviewPage(quizSet.questionSet[currentQ],totalQ,quizSet.answerSet[currentQ],attemptKey[currentQ]!!, onNext = {quizViewModel.nextQ()},

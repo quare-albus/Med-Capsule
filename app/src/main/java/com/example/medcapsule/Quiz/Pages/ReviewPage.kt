@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -144,6 +145,36 @@ fun ReviewPage(currentQuestion: Question, totalQ: Int, correctAnswer : Answer, s
                             Text(option)
                         }
                     }
+                }
+            }
+            Spacer(modifier = Modifier.padding(8.dp))
+            Card(
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 6.dp
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+                    .height(IntrinsicSize.Min),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xfffefce8), //Card background color
+                    contentColor = Color.Black  //Card content color,e.g.text
+                ),
+                shape = RoundedCornerShape(15.dp)
+            ){
+                Column(modifier = Modifier.fillMaxSize()
+                    .height(IntrinsicSize.Min)
+                    .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ){
+                    Box(modifier = Modifier.fillMaxWidth()
+                        .padding(8.dp))
+                    {
+                        Text("Description",
+                            fontWeight =  FontWeight.Black)
+                    }
+                    Text(correctAnswer.Description)
                 }
             }
         }
