@@ -3,5 +3,6 @@ package com.example.medcapsule.Quiz
 data class QuizSet (
     var id : String = "",
     var questionSet : List<Question> = listOf<Question>(),
-    var answerSet : List<Answer> = listOf<Answer>()
+    var answerSet : List<Answer> = listOf<Answer>(),
+    var attemptKey : Map<Int,Int> = mapOf()
 )

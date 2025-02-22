@@ -1,53 +1,46 @@
 package com.example.medcapsule.Quiz
 
-import android.app.Activity
-import android.content.Context
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.medcapsule.SharedPreferencesManager
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class QuizViewModel() : ViewModel() {
-    val State : STATE
-        get() {
-            return STATE
-        }
+    private val _state = MutableStateFlow(STATE.LOADING)
+    val state : StateFlow<STATE> = _state.asStateFlow()
+
     private val _quizSet = MutableStateFlow(QuizSet())
     val quizSet : StateFlow<QuizSet> = _quizSet.asStateFlow()
+
+    private val _isAttempted = MutableStateFlow(false)
+    val isAttempted : StateFlow<Boolean> = _isAttempted.asStateFlow()
+
+    private val _quizQuestions = MutableStateFlow(mutableListOf<Question>())
+    private val quizQuestions : StateFlow<List<Question>> = _quizQuestions.asStateFlow()
+
+    private val _quizAnswers = MutableStateFlow(mutableListOf<Answer>())
+    private val quizAnswers : StateFlow<List<Answer>> = _quizAnswers.asStateFlow()
 
     private val _currentQ = MutableStateFlow(0)
     val currentQ : StateFlow<Int> = _currentQ.asStateFlow()
 
-    private val _totalQ = MutableStateFlow(0)
-    val totalQ : StateFlow<Int> = _totalQ.asStateFlow()
-
-    private val _optionSelected= MutableStateFlow(0)
-    val optionSelected : StateFlow<Int> = _optionSelected.asStateFlow()
-
     private val _attemptKey= MutableStateFlow(mapOf<Int,Int>())
     val attemptKey : StateFlow<Map<Int, Int>> = _attemptKey.asStateFlow()
-
-    private val _prevQuizData= MutableStateFlow("")
-    val prevQuizData : StateFlow<String> = _prevQuizData.asStateFlow()
 
     private val _debug1= MutableStateFlow("")
     val debug1 : StateFlow<String> = _debug1.asStateFlow()
 
+
+    // timer data
     private val _timer = MutableStateFlow(0L)
     val timer = _timer.asStateFlow()
     private var timerJob: Job? = null
@@ -56,57 +49,105 @@ class QuizViewModel() : ViewModel() {
     private val quizSetRef = firestore.collection("Quiz").document("SpecificId")
 
 
-    fun fetchQuizSet(){
+    init{
+        viewModelScope.launch{
+            val initListOfAsyncFunc = listOf(
+                viewModelScope.async { fetchQuizDetails() },
+                viewModelScope.async { fetchQuestions() },
+                viewModelScope.async { fetchAnswers() },
+                viewModelScope.async { getPrevQuizAttemptKey() },
+            )
 
-        //actual quiz data
-        val questionList = mutableListOf<Question>()
-        quizSetRef.collection("QuizQuestions").get()
-            .addOnSuccessListener { result ->
-                for (document in result){                                   // questions
-                    val data = document.data
-                    val myObject = document.toObject(Question::class.java)
-                    questionList.add(myObject)
-                }
+            for (asyncFunc in initListOfAsyncFunc){
+                asyncFunc.await()
             }
 
+            _state.update{STATE.READY}
+        }
 
-        // meta-data of quiz {timing and stuff}
-        var resultObject : QuizSet = QuizSet()
-        quizSetRef.get()
-            .addOnSuccessListener { result ->
-                resultObject = result.toObject(QuizSet::class.java)!!
-                resultObject.questionSet = questionList
-                _quizSet.update{ resultObject }
-                _totalQ.update{_quizSet.value.questionSet.size}
-                setAnswer(prevQuizData.value)
-            }
     }
-    fun fetchAnswerKey(){
 
-        //Fetching Answer Key
-        try {
-            val answerList = mutableListOf<Answer>()
-            quizSetRef.collection("QuizAnswers").get()
+
+    private fun fetchQuizDetails(){
+        viewModelScope.launch{// meta-data of quiz {timing and stuff}
+            quizSetRef.get()
+                .addOnSuccessListener { result ->
+                    val resultObject = result.toObject(QuizSet::class.java)!!
+                    resultObject.questionSet = quizQuestions.value
+                    resultObject.answerSet = quizAnswers.value
+                    _quizSet.update { resultObject }
+                }
+        }
+    }
+
+    private fun fetchQuestions(){
+        viewModelScope.launch{//actual quiz data
+            quizSetRef.collection("QuizQuestions").get()
                 .addOnSuccessListener { result ->
                     for (document in result) {                                   // questions
-                        val myObject = Answer(document["QuestionNumber"].toString().toInt(),document["Answer"].toString().toInt(),document["Description"].toString())
-                        answerList.add(myObject)
+                        val myObject = document.toObject(Question::class.java)
+                        _quizQuestions.value.add(myObject)
                     }
-                    val resultObject = _quizSet.value
-                    resultObject.answerSet = answerList.sortedWith(compareBy<Answer> {
-                        it.QuestionNumber
-                    })
-                    _quizSet.update{resultObject}
-                    _debug1.value  = "success"
                 }
         }
-        catch(e : Exception){
-            _debug1.value = e.toString()
+    }
+
+    private fun fetchAnswers(){
+        viewModelScope.launch{//Fetching Answer Key
+            try {
+                quizSetRef.collection("QuizAnswers")
+                    .get()
+                    .addOnSuccessListener { result ->
+                        for (document in result) {                                   // questions
+                            val myObject = Answer(
+                                document["QuestionNumber"].toString().toInt(),
+                                document["Answer"].toString().toInt(),
+                                document["Description"].toString()
+                            )
+                            _quizAnswers.value.add(myObject)
+                        }
+
+                        _debug1.value = "success"
+                    }
+            } catch (_: Exception) {
+            }
+            _currentQ.update { 0 }
+        }
+    }
+
+    private fun getPrevQuizAttemptKey(){
+        viewModelScope.launch{
+            val prevAttemptSet: MutableMap<Int, Int> = mutableMapOf()
+            val defaultString = "Default"
+            val prevQuizAttemptKeyJsonString =
+                SharedPreferencesManager.getString("Quiz_${quizSet.value.id}", defaultString)
+            if (prevQuizAttemptKeyJsonString != defaultString) {
+                _isAttempted.value = true
+                val prevQuizAttemptKeyString =
+                    prevQuizAttemptKeyJsonString.drop(1).dropLast(1).replace(
+                        " ",
+                        ""
+                    )  // removes spaces and cleares the { } at the start and the end of the json data
+                for (qaPair in prevQuizAttemptKeyString.split(",")) {
+                    val qaTuple =
+                        qaPair.split("=") // qaTuple contain the question and answer in a list at [0 index the question] [1 index the answer]
+                    try {
+                        if (qaTuple[0] != "" && qaTuple.last() != "") {
+                            prevAttemptSet[qaTuple[0].toInt()] = qaTuple.last().toInt()
+                        }
+                    } catch (_: Exception) {
+                    }
+                }
+
+                _quizSet.value.attemptKey = prevAttemptSet
+            }
         }
 
-        _currentQ.update {0}
+
 
     }
+
+    // navigating questions
     fun nextQ(){
         _currentQ.update { _currentQ.value + 1 }
     }
@@ -115,13 +156,40 @@ class QuizViewModel() : ViewModel() {
         _currentQ.update { _currentQ.value - 1 }
     }
 
+    // selecting options
     fun  selectOption(currentQ : Int, option : Int){
         _attemptKey.update {oldMap ->
             oldMap + (currentQ to option)
         }
     }
 
+    //submitting the quiz
+    fun submitQuiz(){
+        _state.update{STATE.READY}
+        viewModelScope.launch {
+            SharedPreferencesManager.saveString("Quiz_${quizSet.value.id}", attemptKey.value.toString())
+        }
+        _isAttempted.value = true
+        _currentQ.value = 0
+    }
 
+    fun startQuiz(){
+        _state.update{STATE.QUIZ}
+        // when we start the quiz we have to empty the attempt key is previously full
+        _attemptKey.value = mapOf()
+    }
+
+    fun review()
+    {
+        _state.update{STATE.REVIEW}
+    }
+
+    fun analysis()
+    {
+        _state.update{STATE.ANALYSIS}
+    }
+
+    //starting timer when the test starts
     fun startTimer(timeLimit: Int = 0, OnTimeFinish: () -> Unit = {}) {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
@@ -140,33 +208,7 @@ class QuizViewModel() : ViewModel() {
         timerJob?.cancel()
     }
 
-    fun setAnswer(data: String){
-        val datan = data.drop(1).dropLast(1).replace(" ","")
-        val attemptSet : MutableMap<Int,Int> = mutableMapOf()
-        for (eachdata in datan.split(",")){
-            val collec = eachdata.split("=")
-            try {
-                if (collec[0] != "" && collec.last() != "") {
-                    attemptSet[collec[0].toInt()] = collec.last().toInt()
-                }
-            }
-            catch(e : Exception)
-            {
-                _debug1.value = e.toString()
-            }
-//            questionList +(collec[0].toInt() to collec.last().toInt())
-        }
 
-        _attemptKey.value = attemptSet
-    }
-
-    fun setDebug(setString : String){
-        _prevQuizData.value = setString
-    }
-
-    fun eraseAttempt(){
-        _attemptKey.value = emptyMap()
-    }
 
     fun noCorrect():Int{
         val correctAnswers = mutableStateOf(0)
@@ -189,6 +231,9 @@ class QuizViewModel() : ViewModel() {
 }
 
 enum class STATE{
-    LOADING_QUIZ,
-    READY
+    LOADING,
+    READY,
+    QUIZ,
+    ANALYSIS,
+    REVIEW
 }

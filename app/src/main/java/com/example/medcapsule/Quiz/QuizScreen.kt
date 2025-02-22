@@ -1,7 +1,6 @@
 package com.example.medcapsule.Quiz
 
 import android.app.Activity
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
@@ -24,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,6 +35,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.medcapsule.Quiz.Pages.AnalysisPage
 import com.example.medcapsule.Quiz.Pages.QuestionPage
 import com.example.medcapsule.Quiz.Pages.ReviewPage
+import com.example.medcapsule.SharedPreferencesManager
 
 class QuizScreen : ComponentActivity() {
     val quizViewModel : QuizViewModel by viewModels()
@@ -46,24 +45,16 @@ class QuizScreen : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-
+            SharedPreferencesManager.init(this@QuizScreen)
 
             val navController = rememberNavController()
 
-            quizViewModel.fetchQuizSet()
             val quizSet by quizViewModel.quizSet.collectAsState()
             val currentQ by quizViewModel.currentQ.collectAsState()
             val attemptKey by quizViewModel.attemptKey.collectAsState()
+            val state by quizViewModel.state.collectAsState()
 
-            val sharedPref = getPreferences(Context.MODE_PRIVATE)
-            val data = sharedPref.getString("Quiz_${quizSet.id}", "")
-            if (data != null) {
-                quizViewModel.setDebug(data)
-            }
-
-            val totalQ = quizSet.questionSet.size
-            var isStarted by remember { mutableFloatStateOf(0f) }
-            var optionSelected by remember { mutableStateOf(0) }
+            val totalQ = quizViewModel.quizSet.collectAsState().value.questionSet.size
 
 
             Scaffold(
@@ -99,7 +90,6 @@ class QuizScreen : ComponentActivity() {
                         .padding(innerPadding)
                 ) {
                     composable("FirstPage") {
-                        isStarted = 0f
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.Center,
@@ -109,46 +99,35 @@ class QuizScreen : ComponentActivity() {
                             Text("Name Of Quiz: ${quizSet.id}")
                             Button(
                                 onClick = {
-                                    navController.navigate("QuestionPage")
-                                    quizViewModel.eraseAttempt()
+                                    quizViewModel.startQuiz()
                                     quizViewModel.startTimer(5){
-                                        val sharedPref = getPreferences(Context.MODE_PRIVATE)
-                                        with (sharedPref.edit()) {
-                                            putString("Quiz_${quizSet.id}", attemptKey.toString())
-                                            apply()
-                                        }
-
-                                        navController.navigate("FirstPage")}
+                                        quizViewModel.submitQuiz() }
                                 },
-                                modifier = Modifier
-                                    .alpha(
-                                        if (totalQ > 0) {
-                                            1f
-                                        } else 0f
-                                    )
+                                enabled = (quizViewModel.state.collectAsState().value == STATE.READY)
                             ) {
                                 Text("Start Test")
                             }
 
                             Text("total number of Q: $totalQ")
 
-                            if(attemptKey != null){
+                            if(quizViewModel.isAttempted.collectAsState().value){
                                 Button(onClick = {
-                                    quizViewModel.fetchAnswerKey()
-                                    navController.navigate("AnalysisPage")
+                                    quizViewModel.analysis()
                                 }){
                                     Text("Analysis")
                                 }
                             }
-                            val debug1 = quizViewModel.debug1.collectAsState().value
-//                           Text(quizViewModel.debug1.collectAsState().value)
+//                            val debug1 = quizViewModel.debug1.collectAsState().value
+                            Text(quizViewModel.debug1.collectAsState().value)
+                            Text(quizViewModel.state.toString())
+                            Text(quizSet.questionSet.size.toString())
                             Text(quizSet.answerSet.size.toString())
+                            Text(attemptKey.toString())
 
                         }
                     }
 
                     composable("QuestionPage") {
-                        isStarted = 1f
                         QuestionPage(
                             quizSet.questionSet[currentQ],
                             totalQ,
@@ -156,13 +135,7 @@ class QuizScreen : ComponentActivity() {
                             onNext = {quizViewModel.nextQ()},
                             onPrev = {quizViewModel.prevQ()},
                             onSubmit = {
-                                val sharedPref = getPreferences(Context.MODE_PRIVATE)
-                                with (sharedPref.edit()) {
-                                    putString("Quiz_${quizSet.id}", attemptKey.toString())
-                                    apply()
-                                }
-
-                                navController.navigate("FirstPage")
+                                quizViewModel.submitQuiz()
                             },
                          onOptionSelect = { selectedOption ->
                             quizViewModel.selectOption(currentQ, selectedOption)
@@ -171,14 +144,24 @@ class QuizScreen : ComponentActivity() {
 
                     composable("AnalysisPage"){
                         if (quizSet.answerSet.isNotEmpty()){
-                            AnalysisPage(attemptKey,quizSet.answerSet,quizViewModel.noCorrect()) {navController.navigate("ReviewPage") }
+                            AnalysisPage(attemptKey,quizSet.answerSet,quizViewModel.noCorrect()) {quizViewModel.review() }
                         }
-//                        AnalysisPage(attemptKey,quizSet.answerSet,{/*navController.navigate("ReviewPage")*/})
                     }
+
                     composable("ReviewPage") {
-                        ReviewPage(quizSet.questionSet[currentQ],totalQ,quizSet.answerSet[currentQ],attemptKey[currentQ]!!, onNext = {quizViewModel.nextQ()},
+                        ReviewPage(quizSet.questionSet[currentQ],totalQ,quizSet.answerSet[currentQ],attemptKey[currentQ]!!,
+                            onNext = {quizViewModel.nextQ()},
                             onPrev = {quizViewModel.prevQ()})
                     }
+                }
+
+                when(state){
+                    STATE.READY -> navController.navigate("FirstPage")
+                    STATE.QUIZ -> navController.navigate("QuestionPage")
+                    STATE.REVIEW -> navController.navigate("ReviewPage")
+                    STATE.ANALYSIS -> navController.navigate("AnalysisPage")
+
+                    else -> TODO()
                 }
 
             }
