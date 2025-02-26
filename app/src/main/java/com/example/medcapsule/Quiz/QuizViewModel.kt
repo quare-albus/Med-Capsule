@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class QuizViewModel() : ViewModel() {
+
     private val _state = MutableStateFlow(STATE.LOADING)
     val state : StateFlow<STATE> = _state.asStateFlow()
 

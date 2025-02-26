@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 
     // Add the Google services Gradle plugin
     id("com.google.gms.google-services")
@@ -85,4 +87,14 @@ dependencies {
 
     //Gson
     implementation(libs.gson)
+
+    //Room
+    implementation(libs.room.runtime)
+    implementation(libs.sqlite.bundled)
+
+    ksp(libs.room.compiler)
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }

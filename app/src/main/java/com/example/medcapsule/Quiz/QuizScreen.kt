@@ -36,6 +36,7 @@ import com.example.medcapsule.Quiz.Pages.AnalysisPage
 import com.example.medcapsule.Quiz.Pages.QuestionPage
 import com.example.medcapsule.Quiz.Pages.ReviewPage
 import com.example.medcapsule.SharedPreferencesManager
+import com.example.medcapsule.database.getAttemptSetDatabase
 
 class QuizScreen : ComponentActivity() {
     val quizViewModel : QuizViewModel by viewModels()
@@ -45,7 +46,8 @@ class QuizScreen : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SharedPreferencesManager.init(this@QuizScreen)
+//            val dao = getAttemptSetDatabase(applicationContext).attemptSetDao()
+
 
             val navController = rememberNavController()
 
@@ -155,14 +157,14 @@ class QuizScreen : ComponentActivity() {
                     }
                 }
 
-                when(state){
+                /*when(state){
                     STATE.READY -> navController.navigate("FirstPage")
                     STATE.QUIZ -> navController.navigate("QuestionPage")
                     STATE.REVIEW -> navController.navigate("ReviewPage")
                     STATE.ANALYSIS -> navController.navigate("AnalysisPage")
 
-                    else -> TODO()
-                }
+                    else -> navController.navigate("FirstPage")
+                }*/
 
             }
 
