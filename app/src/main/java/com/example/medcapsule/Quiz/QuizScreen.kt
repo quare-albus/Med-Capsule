@@ -1,6 +1,7 @@
 package com.example.medcapsule.Quiz
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
@@ -36,17 +37,22 @@ import com.example.medcapsule.Quiz.Pages.AnalysisPage
 import com.example.medcapsule.Quiz.Pages.QuestionPage
 import com.example.medcapsule.Quiz.Pages.ReviewPage
 import com.example.medcapsule.SharedPreferencesManager
-import com.example.medcapsule.database.getAttemptSetDatabase
 
 class QuizScreen : ComponentActivity() {
-    val quizViewModel : QuizViewModel by viewModels()
+
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+
         setContent {
-//            val dao = getAttemptSetDatabase(applicationContext).attemptSetDao()
+
+            val id = intent.getStringExtra("quizId")?:""
+            val quizViewModel : QuizViewModel by viewModels {
+                QuizViewModel.Factory(id)
+            }
 
 
             val navController = rememberNavController()
@@ -56,7 +62,9 @@ class QuizScreen : ComponentActivity() {
             val attemptKey by quizViewModel.attemptKey.collectAsState()
             val state by quizViewModel.state.collectAsState()
 
-            val totalQ = quizViewModel.quizSet.collectAsState().value.questionSet.size
+//            quizViewModel.getPrevQuizAttemptKey(sharedPref.getString("Quiz_${quizSet.id}", "defaultString")!!)
+
+            val totalQ by quizViewModel.totalQ.collectAsState()
 
 
             Scaffold(
@@ -99,11 +107,13 @@ class QuizScreen : ComponentActivity() {
                         ) {
                             Text("This is the start page of the Quiz")
                             Text("Name Of Quiz: ${quizSet.id}")
+                            Text(quizViewModel.attemptSetExist.collectAsState().value.toString())
                             Button(
                                 onClick = {
                                     quizViewModel.startQuiz()
                                     quizViewModel.startTimer(5){
-                                        quizViewModel.submitQuiz() }
+                                        quizViewModel.submitQuiz()
+                                    }
                                 },
                                 enabled = (quizViewModel.state.collectAsState().value == STATE.READY)
                             ) {
@@ -121,10 +131,12 @@ class QuizScreen : ComponentActivity() {
                             }
 //                            val debug1 = quizViewModel.debug1.collectAsState().value
                             Text(quizViewModel.debug1.collectAsState().value)
-                            Text(quizViewModel.state.toString())
+                            Text(quizViewModel.state.collectAsState().value.toString())
                             Text(quizSet.questionSet.size.toString())
                             Text(quizSet.answerSet.size.toString())
+                            Text(quizSet.attemptKey.toString())
                             Text(attemptKey.toString())
+                            Text(SharedPreferencesManager.getString(id,"defaultString"))
 
                         }
                     }
@@ -157,14 +169,14 @@ class QuizScreen : ComponentActivity() {
                     }
                 }
 
-                /*when(state){
+                when(state){
                     STATE.READY -> navController.navigate("FirstPage")
                     STATE.QUIZ -> navController.navigate("QuestionPage")
                     STATE.REVIEW -> navController.navigate("ReviewPage")
                     STATE.ANALYSIS -> navController.navigate("AnalysisPage")
 
                     else -> navController.navigate("FirstPage")
-                }*/
+                }
 
             }
 

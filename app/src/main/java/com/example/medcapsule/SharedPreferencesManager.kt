@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 
 object SharedPreferencesManager {
 
-    private const val PREF_NAME = "MedCapsule"
+    private const val PREF_NAME = "MySharedPrefs"
     private lateinit var sharedPreferences: SharedPreferences
 
     fun init(context: Context) {
@@ -19,4 +19,5 @@ object SharedPreferencesManager {
     fun getString(key: String, defaultValue: String): String {
         return sharedPreferences.getString(key, defaultValue) ?: defaultValue
     }
+
 }

@@ -1,9 +1,27 @@
 package com.example.medcapsule.Quiz
 
+import android.app.Activity
+import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.annotation.OptIn
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
 import com.example.medcapsule.SharedPreferencesManager
+import com.example.medcapsule.database.AttemptSetDao
+import com.example.medcapsule.database.attemptSet
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -13,14 +31,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.log
 
-class QuizViewModel() : ViewModel() {
+class QuizViewModel(private val id: String) : ViewModel() {
+
+
+
+    private val _attemptSetExist = MutableStateFlow(0)
+    val attemptSetExist : StateFlow<Int> = _attemptSetExist.asStateFlow()
 
     private val _state = MutableStateFlow(STATE.LOADING)
     val state : StateFlow<STATE> = _state.asStateFlow()
 
     private val _quizSet = MutableStateFlow(QuizSet())
     val quizSet : StateFlow<QuizSet> = _quizSet.asStateFlow()
+
+    private val _totalQ = MutableStateFlow(0)
+    val totalQ : StateFlow<Int> = _totalQ.asStateFlow()
 
     private val _isAttempted = MutableStateFlow(false)
     val isAttempted : StateFlow<Boolean> = _isAttempted.asStateFlow()
@@ -47,7 +74,7 @@ class QuizViewModel() : ViewModel() {
     private var timerJob: Job? = null
 
     private val firestore = FirebaseFirestore.getInstance()
-    private val quizSetRef = firestore.collection("Quiz").document("SpecificId")
+    private val quizSetRef = firestore.collection("Quiz").document(id)
 
 
     init{
@@ -88,6 +115,7 @@ class QuizViewModel() : ViewModel() {
                     for (document in result) {                                   // questions
                         val myObject = document.toObject(Question::class.java)
                         _quizQuestions.value.add(myObject)
+                        _totalQ.value += 1
                     }
                 }
         }
@@ -101,14 +129,14 @@ class QuizViewModel() : ViewModel() {
                     .addOnSuccessListener { result ->
                         for (document in result) {                                   // questions
                             val myObject = Answer(
-                                document["QuestionNumber"].toString().toInt(),
-                                document["Answer"].toString().toInt(),
-                                document["Description"].toString()
+                                document["questionNumber"].toString().toInt(),
+                                document["answer"].toString().toInt(),
+                                document["description"].toString()
                             )
                             _quizAnswers.value.add(myObject)
                         }
 
-                        _debug1.value = "success"
+                        _debug1.value += "success"
                     }
             } catch (_: Exception) {
             }
@@ -116,12 +144,15 @@ class QuizViewModel() : ViewModel() {
         }
     }
 
-    private fun getPrevQuizAttemptKey(){
+    @OptIn(UnstableApi::class)
+    fun getPrevQuizAttemptKey(){
         viewModelScope.launch{
             val prevAttemptSet: MutableMap<Int, Int> = mutableMapOf()
             val defaultString = "Default"
             val prevQuizAttemptKeyJsonString =
-                SharedPreferencesManager.getString("Quiz_${quizSet.value.id}", defaultString)
+                MainApplication.database.attemptSetDao().read(id).first().attemptSet
+            Log.d("debug",prevQuizAttemptKeyJsonString)
+            Log.d("debug",MainApplication.database.attemptSetDao().read(id).first().attemptSet)
             if (prevQuizAttemptKeyJsonString != defaultString) {
                 _isAttempted.value = true
                 val prevQuizAttemptKeyString =
@@ -141,11 +172,10 @@ class QuizViewModel() : ViewModel() {
                 }
 
                 _quizSet.value.attemptKey = prevAttemptSet
+                _attemptKey.value = prevAttemptSet
+                _debug1.value += prevAttemptSet.toString()
             }
         }
-
-
-
     }
 
     // navigating questions
@@ -159,25 +189,37 @@ class QuizViewModel() : ViewModel() {
 
     // selecting options
     fun  selectOption(currentQ : Int, option : Int){
-        _attemptKey.update {oldMap ->
-            oldMap + (currentQ to option)
+        _attemptKey.update { old ->
+            old + (currentQ to option)
         }
+        _quizSet.value.attemptKey += (currentQ to option)
     }
 
     //submitting the quiz
     fun submitQuiz(){
         _state.update{STATE.READY}
-        viewModelScope.launch {
-            SharedPreferencesManager.saveString("Quiz_${quizSet.value.id}", attemptKey.value.toString())
-        }
         _isAttempted.value = true
+        SharedPreferencesManager.saveString(id,_attemptKey.value.toString())
+        //Room have to work on it ||||||| Not now
+        viewModelScope.launch{
+            MainApplication.database.attemptSetDao().upsert(attemptSet(_attemptKey.value.toString(),id))
+        }
+
+        //reset timer
+        timerJob?.cancel()
+        _timer.value = 0
+
+        //reset question counter
         _currentQ.value = 0
     }
 
     fun startQuiz(){
         _state.update{STATE.QUIZ}
         // when we start the quiz we have to empty the attempt key is previously full
+        _quizSet.value.attemptKey = mapOf()
         _attemptKey.value = mapOf()
+
+        startTimer(5) { submitQuiz() }
     }
 
     fun review()
@@ -193,6 +235,7 @@ class QuizViewModel() : ViewModel() {
     //starting timer when the test starts
     fun startTimer(timeLimit: Int = 0, OnTimeFinish: () -> Unit = {}) {
         timerJob?.cancel()
+        _timer.value = 0
         timerJob = viewModelScope.launch {
             while (_timer.value < timeLimit ) {
                 delay(1000)
@@ -216,17 +259,24 @@ class QuizViewModel() : ViewModel() {
         if(quizSet.value.answerSet.isNotEmpty()) {
             for (answer in quizSet.value.answerSet) {
 
-                if (answer.Answer == attemptKey.value[answer.QuestionNumber - 1]) {
+                if (answer.answer == quizSet.value.attemptKey[answer.questionNumber - 1]) {
                     correctAnswers.value += 1
                 }
                 else{
-                    _debug1.update{old -> old + "${answer.QuestionNumber}  ${answer.Answer} ${attemptKey.value[answer.QuestionNumber]} "}
+                    _debug1.update{old -> old + "${answer.questionNumber}  ${answer.answer} ${quizSet.value.attemptKey[answer.questionNumber]} "}
                 }
             }
             return correctAnswers.value
         }
         else{
             return 3
+        }
+    }
+
+    class Factory(private val id : String) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+            return QuizViewModel(id) as T
         }
     }
 }

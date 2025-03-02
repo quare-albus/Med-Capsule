@@ -10,11 +10,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.medcapsule.Quiz.MainApplication
+import com.example.medcapsule.database.attemptSet
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 data class Note(
     val name: String = ""
@@ -33,64 +38,3 @@ fun addNoteToFirestore(note: Note) {
 }
 
 
-@Composable
-fun Crud() {
-
-    var title by remember { mutableStateOf("") }
-    var content by  remember { mutableStateOf("") }
-
-//    Column {
-//        TextField(
-//            value = title,
-//            onValueChange = { title = it },
-//            label = { Text("Title") }
-//        )
-//        TextField(
-//            value = content,
-//            onValueChange = { content = it },
-//            label = { Text("Content") }
-//        )
-//        Button(onClick = {
-//            val note = Note(
-//                title = title,
-//                content = content
-//            )
-//            addNoteToFirestore(note)
-//        }) {
-//            Text("Add Note")
-//        }
-        FetchNotesFromFirestore()
-//    }
-
-
-}
-
-@Composable
-fun FetchNotesFromFirestore() {
-    val notes = remember { mutableStateListOf<Note>() }
-    val notesCollection = firestore.collection("Chapters11").document("Living World").collection("Parts")
-
-    LaunchedEffect(Unit) {
-        notesCollection.get()
-            .addOnSuccessListener { result ->
-                for (document in result) {
-                    val note = document.toObject(Note::class.java)
-                    notes.add(note)
-                }
-            }
-            .addOnFailureListener { exception ->
-                // Handle error
-            }
-    }
-
-    NoteList(notes = notes)
-}
-
-@Composable
-fun NoteList(notes: List<Note>) {
-    LazyRow{
-        items(notes) { note ->
-            Text(text = note.name)
-        }
-    }
-}

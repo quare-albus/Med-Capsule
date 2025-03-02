@@ -1,7 +1,7 @@
 package com.example.medcapsule.Quiz
 
 data class Answer (
-    val QuestionNumber : Int,
-    val Answer : Int,
-    val Description : String
+    val questionNumber : Int,
+    val answer : Int,
+    val description : String
 )

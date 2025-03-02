@@ -46,13 +46,13 @@ fun QuestionPage(currentQuestion: Question, totalQ: Int, selectedOption : Int?, 
                             .height(50.dp)
                             .padding(4.dp)
                             .alpha(
-                                if (currentQuestion.QuestionNumber == 1) {
+                                if (currentQuestion.questionNumber == 0) {
                                     0f
                                 } else {
                                     1f
                                 }
                             ),
-                        enabled = (currentQuestion.QuestionNumber != 1)
+                        enabled = (currentQuestion.questionNumber != 0)
                     ) {
                         Text("Previous")
                     }
@@ -65,13 +65,13 @@ fun QuestionPage(currentQuestion: Question, totalQ: Int, selectedOption : Int?, 
                             .height(50.dp)
                             .padding(4.dp)
                             .alpha(
-                                if (currentQuestion.QuestionNumber == totalQ) {
+                                if (currentQuestion.questionNumber == (totalQ - 1)) {
                                     0f
                                 } else {
                                     1f
                                 }
                             ),
-                        enabled = (currentQuestion.QuestionNumber != totalQ)
+                        enabled = (currentQuestion.questionNumber != (totalQ - 1))
                     ) {
                         Text("Next")
                     }
@@ -118,7 +118,7 @@ fun QuestionPage(currentQuestion: Question, totalQ: Int, selectedOption : Int?, 
                         .padding(4.dp),
                         contentAlignment = Alignment.CenterStart) {
                         Text(
-                            "Question ${currentQuestion.QuestionNumber}",
+                            "Question ${currentQuestion.questionNumber + 1}",
                             fontWeight = FontWeight.Black
                         )
                     }
@@ -128,24 +128,24 @@ fun QuestionPage(currentQuestion: Question, totalQ: Int, selectedOption : Int?, 
                         .padding(4.dp),
                         contentAlignment = Alignment.CenterStart) {
                         Text(
-                            currentQuestion.Question
+                            currentQuestion.question
                         )
                     }
 
                     //options
-                    for (option in currentQuestion.Options){
+                    for (option in currentQuestion.options){
                         Row(modifier = Modifier.fillMaxWidth()
                             .padding(4.dp)
-                            .border(border = BorderStroke(1.dp, if (currentQuestion.Options.indexOf(option) == selectedOption) {Color.Black} else {Color(0X00000000)}),
+                            .border(border = BorderStroke(1.dp, if (currentQuestion.options.indexOf(option) == selectedOption) {Color.Black} else {Color(0X00000000)}),
                                 shape = RoundedCornerShape(9.dp) ) // outline is always present the color is from Black to transparent
                             .clip(RoundedCornerShape(9.dp))
                             .clickable(onClick = {
-                                onOptionSelect(currentQuestion.Options.indexOf(option))
+                                onOptionSelect(currentQuestion.options.indexOf(option))
                             }),
                             horizontalArrangement = Arrangement.Start,
                             verticalAlignment = Alignment.CenterVertically){
                             RadioButton(
-                                selected = (currentQuestion.Options.indexOf(option) == selectedOption),
+                                selected = (currentQuestion.options.indexOf(option) == selectedOption),
                                 onClick = null,
                                 modifier = Modifier.padding(4.dp)
                             )

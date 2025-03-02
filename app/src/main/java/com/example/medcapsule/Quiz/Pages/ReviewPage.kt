@@ -33,7 +33,7 @@ import com.example.medcapsule.Quiz.Question
 
 @Composable
 fun ReviewPage(currentQuestion: Question, totalQ: Int, correctAnswer : Answer, selectedOption: Int, onNext: () -> Unit, onPrev: () -> Unit){
-    val isCorrect = (selectedOption == correctAnswer.Answer)
+    val isCorrect = (selectedOption == correctAnswer.answer)
     Scaffold(
         bottomBar = {
             Column(modifier = Modifier
@@ -48,13 +48,13 @@ fun ReviewPage(currentQuestion: Question, totalQ: Int, correctAnswer : Answer, s
                             .height(50.dp)
                             .padding(4.dp)
                             .alpha(
-                                if (currentQuestion.QuestionNumber == 1) {
+                                if (currentQuestion.questionNumber == 0) {
                                     0f
                                 } else {
                                     1f
                                 }
                             ),
-                        enabled = (currentQuestion.QuestionNumber != 1)
+                        enabled = (currentQuestion.questionNumber != 0)
                     ) {
                         Text("Previous")
                     }
@@ -67,13 +67,13 @@ fun ReviewPage(currentQuestion: Question, totalQ: Int, correctAnswer : Answer, s
                             .height(50.dp)
                             .padding(4.dp)
                             .alpha(
-                                if (currentQuestion.QuestionNumber == totalQ) {
+                                if (currentQuestion.questionNumber == (totalQ - 1)) {
                                     0f
                                 } else {
                                     1f
                                 }
                             ),
-                        enabled = (currentQuestion.QuestionNumber != totalQ)
+                        enabled = (currentQuestion.questionNumber != (totalQ - 1))
                     ) {
                         Text("Next")
                     }
@@ -110,7 +110,7 @@ fun ReviewPage(currentQuestion: Question, totalQ: Int, correctAnswer : Answer, s
                         .padding(4.dp),
                         contentAlignment = Alignment.CenterStart) {
                         Text(
-                            "Question ${currentQuestion.QuestionNumber}",
+                            "Question ${currentQuestion.questionNumber}",
                             fontWeight = FontWeight.Black
                         )
                     }
@@ -120,17 +120,17 @@ fun ReviewPage(currentQuestion: Question, totalQ: Int, correctAnswer : Answer, s
                         .padding(4.dp),
                         contentAlignment = Alignment.CenterStart) {
                         Text(
-                            currentQuestion.Question
+                            currentQuestion.question
                         )
                     }
 
                     //options
-                    for (option in currentQuestion.Options){
+                    for (option in currentQuestion.options){
                         Row(modifier = Modifier.fillMaxWidth()
                             .padding(4.dp)
-                            .border(border = BorderStroke(1.dp, when(currentQuestion.Options.indexOf(option)) {
+                            .border(border = BorderStroke(1.dp, when(currentQuestion.options.indexOf(option)) {
                                 (selectedOption) -> if (isCorrect) {Color.Green} else {Color.Red}
-                                (correctAnswer.Answer) -> Color.Green
+                                (correctAnswer.answer) -> Color.Green
                                 else -> Color(0X00000000)
                             }),
                                 shape = RoundedCornerShape(9.dp) ) // outline is always present the color is from Black to transparent
@@ -138,7 +138,7 @@ fun ReviewPage(currentQuestion: Question, totalQ: Int, correctAnswer : Answer, s
                             horizontalArrangement = Arrangement.Start,
                             verticalAlignment = Alignment.CenterVertically){
                             RadioButton(
-                                selected = (currentQuestion.Options.indexOf(option) == selectedOption),
+                                selected = (currentQuestion.options.indexOf(option) == selectedOption),
                                 onClick = null,
                                 modifier = Modifier.padding(4.dp)
                             )
@@ -174,7 +174,7 @@ fun ReviewPage(currentQuestion: Question, totalQ: Int, correctAnswer : Answer, s
                         Text("Description",
                             fontWeight =  FontWeight.Black)
                     }
-                    Text(correctAnswer.Description)
+                    Text(correctAnswer.description)
                 }
             }
         }

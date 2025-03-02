@@ -12,4 +12,7 @@ interface AttemptSetDao {
 
     @Query("SELECT COUNT() FROM attemptSet WHERE quizName = :id")
     suspend fun search(id : String) : Int
+
+    @Query("SELECT * FROM attemptSet WHERE quizName = :id")
+    suspend fun read(id: String) : List<attemptSet>
 }

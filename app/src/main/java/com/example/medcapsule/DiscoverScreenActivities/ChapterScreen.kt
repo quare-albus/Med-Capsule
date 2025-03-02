@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.example.medcapsule.Quiz.QuizScreen
 import com.example.medcapsule.R
 
 class ChapterScreen : ComponentActivity() {
@@ -215,7 +216,12 @@ class ChapterScreen : ComponentActivity() {
                         Box(modifier = Modifier
                             .size(75.dp,40.dp)
                             .clip(RoundedCornerShape(15.dp))
-                            .background(Color.Black),
+                            .background(Color.Black)
+                            .clickable(onClick = {
+                                val intentCrnt = Intent(context, QuizScreen::class.java)
+                                intentCrnt.putExtra("quizId",chapname)
+                                context.startActivity(intentCrnt)
+                            }),
                             contentAlignment = Alignment.Center)
                         {
                             Text("Start Now",
